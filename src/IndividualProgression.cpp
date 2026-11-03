@@ -337,11 +337,11 @@ bool IndividualProgression::isAttuned(Player* player)
 }
 
 // At level 80 the raid difficulty picks the version of Onyxia's Lair and Naxxramas, and 10 Heroic is the 40-player one.
-// Only progression 18 may pick it, which an excluded account has reached at level 80, and it still needs
-// the Drakefire Amulet or the Naxxramas attunement.
+// Only progression 18 may pick it, which an excluded account has reached at level 80, or any level 80
+// with VanillaRaids.Level80Access. It still needs the Drakefire Amulet or the Naxxramas attunement.
 bool IndividualProgression::canEnterVanillaRaidAt80(Player* player)
 {
-    return hasPassedProgression(player, PROGRESSION_WOTLK_TIER_5) || isExcludedAccount(player);
+    return VanillaRaidsLevel80Access || hasPassedProgression(player, PROGRESSION_WOTLK_TIER_5) || isExcludedAccount(player);
 }
 
 void IndividualProgression::LoadAccountRegexes()
@@ -1143,6 +1143,7 @@ private:
         sIndividualProgression->tbcHealingAdjustment = sConfigMgr->GetOption<float>("IndividualProgression.TBCHealingAdjustment", 1);
         sIndividualProgression->questXpFix = sConfigMgr->GetOption<bool>("IndividualProgression.QuestXPFix", true);
         sIndividualProgression->requireNaxxStrath = sConfigMgr->GetOption<bool>("IndividualProgression.RequireNaxxStrathEntrance", false);
+        sIndividualProgression->VanillaRaidsLevel80Access = sConfigMgr->GetOption<bool>("IndividualProgression.VanillaRaids.Level80Access", false);
         sIndividualProgression->doableNaxx40Bosses_4H = sConfigMgr->GetOption<bool>("IndividualProgression.doableNaxx40Bosses_4H", false);
         sIndividualProgression->doableNaxx40Bosses_Gluth = sConfigMgr->GetOption<bool>("IndividualProgression.doableNaxx40Bosses_Gluth", false);
         sIndividualProgression->doableNaxx40Bosses_Patchwerk = sConfigMgr->GetOption<bool>("IndividualProgression.doableNaxx40Bosses_Patchwerk", false);

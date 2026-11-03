@@ -105,6 +105,18 @@ IndividualProgression.QuestXPFix = 1
 #
 IndividualProgression.RequireNaxxStrathEntrance = 0
 
+# IndividualProgression.VanillaRaids.Level80Access
+#
+#        Description: At level 80 the raid difficulty picks the version of Onyxia's Lair and Naxxramas: 10 Heroic is the 40-player version.
+#                     If disabled, only level 80 characters at progression 18 can enter it. If enabled, level 80 characters below
+#                     progression 18 can enter it too. They still need the Drakefire Amulet or the Naxxramas attunement.
+#                     Level 71-79 can't enter the 40-player versions either way.
+#
+#        Default:     0 - Disabled
+#                     1 - Enabled
+#
+IndividualProgression.VanillaRaids.Level80Access = 0
+
 # IndividualProgression.doableNaxx40Bosses
 #
 #        Description: If enabled, this will make certain bosses in Naxx40 easier.
