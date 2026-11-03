@@ -31,7 +31,7 @@ public:
         ChatHandler handler(player->GetSession());
         Group* group = player->GetGroup();
 
-        if (player->GetLevel() <= 70 || sIndividualProgression->hasPassedProgression(player, PROGRESSION_WOTLK_TIER_5))
+        if (player->GetLevel() <= 70 || (player->GetLevel() == 80 && sIndividualProgression->canEnterVanillaRaidAt80(player)))
         {
             bool allowed = true;
 
@@ -83,7 +83,12 @@ public:
 
                     bool allowed = true;
 
-                    if (sIndividualProgression->hasPassedProgression(member, PROGRESSION_WOTLK_TIER_5)) // progression 18
+                    if (member->GetLevel() > 70 && !(member->GetLevel() == 80 && sIndividualProgression->canEnterVanillaRaidAt80(member)))
+                    {
+                        handler.PSendSysMessage("|cff00ffff{}|r can't enter this version of Naxxramas.", member->GetName());
+                        allowed = false;
+                    }
+                    else if (sIndividualProgression->hasPassedProgression(member, PROGRESSION_WOTLK_TIER_5)) // progression 18
                         allowed = true;
                     else if (sIndividualProgression->hasPassedProgression(member, PROGRESSION_TBC_TIER_5)) // death knights
                     {

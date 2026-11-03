@@ -336,6 +336,14 @@ bool IndividualProgression::isAttuned(Player* player)
         return false;
 }
 
+// At level 80 the raid difficulty picks the version of Onyxia's Lair and Naxxramas, and 10 Heroic is the 40-player one.
+// Only progression 18 may pick it, which an excluded account has reached at level 80, and it still needs
+// the Drakefire Amulet or the Naxxramas attunement.
+bool IndividualProgression::canEnterVanillaRaidAt80(Player* player)
+{
+    return hasPassedProgression(player, PROGRESSION_WOTLK_TIER_5) || isExcludedAccount(player);
+}
+
 void IndividualProgression::LoadAccountRegexes()
 {
     auto compile = [](std::string const& option, std::string const& pattern)

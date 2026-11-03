@@ -221,23 +221,25 @@ public:
         {
             if (player->GetLevel() == 80)
             {
-                if (sIndividualProgression->hasPassedProgression(player, PROGRESSION_WOTLK_TIER_5)) // progression 18
+                // 10 Heroic is the vanilla version, 10 and 25 are the WotLK versions
+                if (player->GetDifficulty(true) == RAID_DIFFICULTY_10MAN_HEROIC && !sIndividualProgression->isBotAccount(player))
                 {
-                    // teleport player, needed because AC doesn't do this by default
-                    player->TeleportTo(249, 29.1607f, -71.3372f, -8.18032f, 4.58f);
-                    return true;
-                }
-                else // progression 0-17
-                {
-                    if (player->GetDifficulty(true) == RAID_DIFFICULTY_10MAN_HEROIC)
-                        handler.PSendSysMessage("You need progression 18 to enter the vanilla version of Onyxia's Lair.");
-                    else
+                    if (!sIndividualProgression->canEnterVanillaRaidAt80(player))
                     {
-                        // teleport player, needed because AC doesn't do this by default
-                        player->TeleportTo(249, 29.1607f, -71.3372f, -8.18032f, 4.58f);
+                        handler.PSendSysMessage("You need progression 18 to enter the vanilla version of Onyxia's Lair.");
+                        return true;
+                    }
+
+                    if (!player->HasItemCount(ITEM_DRAKEFIRE_AMULET))
+                    {
+                        handler.PSendSysMessage("You need to have the Drakefire Amulet in your inventory.");
                         return true;
                     }
                 }
+
+                // teleport player, needed because AC doesn't do this by default
+                player->TeleportTo(249, 29.1607f, -71.3372f, -8.18032f, 4.58f);
+                return true;
             }
             else
             {

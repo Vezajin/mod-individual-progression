@@ -212,20 +212,32 @@ public:
         if (!player->IsInWorld())
             return true;
 
-        if (!sIndividualProgression->enabled || player->IsGameMaster() || !sIndividualProgression->isNormalAccount(player))
+        if (!sIndividualProgression->enabled || player->IsGameMaster() || sIndividualProgression->isBotAccount(player))
             return true;
-       
-        if (mapid == MAP_BLACKWING_LAIR && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_ONYXIA))
+
+        // An excluded account is exempt from progression, not from the keys: the Drakefire Amulet, the Naxxramas attunement and those of the TBC raids
+        bool const progressionRules = sIndividualProgression->isNormalAccount(player);
+
+        if (progressionRules && mapid == MAP_BLACKWING_LAIR && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_ONYXIA))
         {
             ChatHandler(player->GetSession()).PSendSysMessage("Progression Level Required = |cff00ffff{}|r", PROGRESSION_ONYXIA);
             return false;
         }
         if (mapid == MAP_ONYXIAS_LAIR)
         {
+            // 10 Heroic is the 40-player version. It needs the Drakefire Amulet at every level and progression, but only when entering the map.
+            bool const vanillaVersion = player->GetMapId() != mapid && player->GetDifficulty(true) == RAID_DIFFICULTY_10MAN_HEROIC;
+
             if (player->GetLevel() <= 70) // vanilla version
             {
-                if (sIndividualProgression->hasPassedProgression(player, PROGRESSION_WOTLK_TIER_5))
-                    return true;
+                if (!progressionRules || sIndividualProgression->hasPassedProgression(player, PROGRESSION_WOTLK_TIER_5))
+                {
+                    if (vanillaVersion && !player->HasItemCount(ITEM_DRAKEFIRE_AMULET))
+                    {
+                        ChatHandler(player->GetSession()).PSendSysMessage("You need to have the Drakefire Amulet in your inventory.");
+                        return false;
+                    }
+                }
                 else // progression 0-17
                 {
                     if (player->GetLevel() < 50)
@@ -236,13 +248,24 @@ public:
                         return false;
                 }
             }
- 			else // WotLK
+            else // WotLK
             {
                 if (player->GetLevel() < 80)
                     return false;
 
-                if (player->GetLevel() == 80 && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_WOTLK_TIER_5) && player->GetDifficulty(true) == RAID_DIFFICULTY_10MAN_HEROIC)
-                    return false;
+                if (vanillaVersion)
+                {
+                    if (!sIndividualProgression->canEnterVanillaRaidAt80(player))
+                    {
+                        ChatHandler(player->GetSession()).PSendSysMessage("You need progression 18 to enter the vanilla version of Onyxia's Lair.");
+                        return false;
+                    }
+                    if (!player->HasItemCount(ITEM_DRAKEFIRE_AMULET))
+                    {
+                        ChatHandler(player->GetSession()).PSendSysMessage("You need to have the Drakefire Amulet in your inventory.");
+                        return false;
+                    }
+                }
             }
         }
         if (mapid == MAP_ZUL_GURUB)
@@ -250,23 +273,23 @@ public:
             uint32 PLAYER_PROGRESSION = sIndividualProgression->GetPlayerProgressionFromQuests(player);
             ProgressionState REQUIRED_ZG_PROGRESSION = static_cast<ProgressionState>(sIndividualProgression->RequiredZulGurubProgression);
 
-            if (PLAYER_PROGRESSION < REQUIRED_ZG_PROGRESSION)
+            if (progressionRules && PLAYER_PROGRESSION < REQUIRED_ZG_PROGRESSION)
             {
                 ChatHandler(player->GetSession()).PSendSysMessage("Progression Level Required = |cff00ffff{}|r", REQUIRED_ZG_PROGRESSION);
                 return false;
             }
         }
-        if (mapid == MAP_AHN_QIRAJ_TEMPLE && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_PRE_AQ))
+        if (progressionRules && mapid == MAP_AHN_QIRAJ_TEMPLE && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_PRE_AQ))
         {
             ChatHandler(player->GetSession()).PSendSysMessage("Progression Level Required = |cff00ffff{}|r", PROGRESSION_PRE_AQ);
             return false;
         }
-        if (mapid == MAP_RUINS_OF_AHN_QIRAJ && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_PRE_AQ))
+        if (progressionRules && mapid == MAP_RUINS_OF_AHN_QIRAJ && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_PRE_AQ))
         {
             ChatHandler(player->GetSession()).PSendSysMessage("Progression Level Required = |cff00ffff{}|r", PROGRESSION_PRE_AQ);
             return false;
         }
-        if (mapid == MAP_OUTLAND)
+        if (progressionRules && mapid == MAP_OUTLAND)
         {
             if (!sIndividualProgression->hasPassedProgression(player, PROGRESSION_PRE_TBC))
             {
@@ -296,13 +319,13 @@ public:
             uint32 PLAYER_PROGRESSION = sIndividualProgression->GetPlayerProgressionFromQuests(player);
             ProgressionState REQUIRED_ZA_PROGRESSION = static_cast<ProgressionState>(sIndividualProgression->RequiredZulAmanProgression);
 
-            if (PLAYER_PROGRESSION < REQUIRED_ZA_PROGRESSION)
+            if (progressionRules && PLAYER_PROGRESSION < REQUIRED_ZA_PROGRESSION)
             {
                 ChatHandler(player->GetSession()).PSendSysMessage("Progression Level Required = |cff00ffff{}|r", REQUIRED_ZA_PROGRESSION);
                 return false;
             }
         }
-        if (mapid == MAP_NORTHREND && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_TBC_TIER_5))
+        if (progressionRules && mapid == MAP_NORTHREND && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_TBC_TIER_5))
         {
             const uint16 AREA_COLD_HEARTH_MANOR = 166;
             const uint16 AREA_DRYGULCH_RAVINE = 370;
@@ -345,40 +368,40 @@ public:
             ChatHandler(player->GetSession()).PSendSysMessage("Progression Level Required = |cff00ffff{}|r", PROGRESSION_TBC_TIER_5);
             return false;
         }
-        if (mapid == MAP_ULDUAR && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_WOTLK_TIER_1))
+        if (progressionRules && mapid == MAP_ULDUAR && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_WOTLK_TIER_1))
         {
             ChatHandler(player->GetSession()).PSendSysMessage("Progression Level Required = |cff00ffff{}|r", PROGRESSION_WOTLK_TIER_1);
             return false;
         }
-        if ((mapid == MAP_TRIAL_OF_THE_CHAMPION || mapid == MAP_TRIAL_OF_THE_CRUSADER) && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_WOTLK_TIER_2))
+        if (progressionRules && (mapid == MAP_TRIAL_OF_THE_CHAMPION || mapid == MAP_TRIAL_OF_THE_CRUSADER) && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_WOTLK_TIER_2))
         {
             ChatHandler(player->GetSession()).PSendSysMessage("Progression Level Required = |cff00ffff{}|r", PROGRESSION_WOTLK_TIER_2);
             return false;
         }
         // This will also restrict other Frozen Halls dungeons, because Forge of Souls must be completed first to access them
-        if ((mapid == MAP_ICECROWN_CITADEL || mapid == MAP_THE_FORGE_OF_SOULS) && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_WOTLK_TIER_3))
+        if (progressionRules && (mapid == MAP_ICECROWN_CITADEL || mapid == MAP_THE_FORGE_OF_SOULS) && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_WOTLK_TIER_3))
         {
             ChatHandler(player->GetSession()).PSendSysMessage("Progression Level Required = |cff00ffff{}|r", PROGRESSION_WOTLK_TIER_3);
             return false;
         }
-        if (mapid == MAP_THE_RUBY_SANCTUM && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_WOTLK_TIER_4))
+        if (progressionRules && mapid == MAP_THE_RUBY_SANCTUM && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_WOTLK_TIER_4))
         {
             ChatHandler(player->GetSession()).PSendSysMessage("Progression Level Required = |cff00ffff{}|r", PROGRESSION_WOTLK_TIER_4);
             return false;
         }
-        if (mapid == MAP_MAGISTERS_TERRACE && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_TBC_TIER_4))
+        if (progressionRules && mapid == MAP_MAGISTERS_TERRACE && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_TBC_TIER_4))
         {
             ChatHandler(player->GetSession()).PSendSysMessage("Progression Level Required = |cff00ffff{}|r", PROGRESSION_TBC_TIER_4);
             return false;
         }
-        if (mapid == MAP_THE_SUNWELL && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_TBC_TIER_4))
+        if (progressionRules && mapid == MAP_THE_SUNWELL && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_TBC_TIER_4))
         {
             ChatHandler(player->GetSession()).PSendSysMessage("Progression Level Required = |cff00ffff{}|r", PROGRESSION_TBC_TIER_4);
             return false;
         }
         if (mapid == MAP_TEMPEST_KEEP)
         {
-            if (!sIndividualProgression->hasPassedProgression(player, PROGRESSION_TBC_TIER_1))
+            if (progressionRules && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_TBC_TIER_1))
             {
                 ChatHandler(player->GetSession()).PSendSysMessage("Progression Level Required = |cff00ffff{}|r", PROGRESSION_TBC_TIER_1);
                 return false;
@@ -396,7 +419,7 @@ public:
         }
         if (mapid == MAP_COILFANG_SERPENTSHRINE_CAVERN)
         {
-            if (!sIndividualProgression->hasPassedProgression(player, PROGRESSION_TBC_TIER_1))
+            if (progressionRules && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_TBC_TIER_1))
             {
                 ChatHandler(player->GetSession()).PSendSysMessage("Progression Level Required = |cff00ffff{}|r", PROGRESSION_TBC_TIER_1);
                 return false;
@@ -409,7 +432,7 @@ public:
         }
         if (mapid == MAP_THE_BATTLE_FOR_MOUNT_HYJAL)
         {
-            if (!sIndividualProgression->hasPassedProgression(player, PROGRESSION_TBC_TIER_2))
+            if (progressionRules && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_TBC_TIER_2))
             {
                 ChatHandler(player->GetSession()).PSendSysMessage("Progression Level Required = |cff00ffff{}|r", PROGRESSION_TBC_TIER_2);
                 return false;
@@ -422,7 +445,7 @@ public:
         }
         if (mapid == MAP_BLACK_TEMPLE)
         {
-            if (!sIndividualProgression->hasPassedProgression(player, PROGRESSION_TBC_TIER_2))
+            if (progressionRules && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_TBC_TIER_2))
             {
                 ChatHandler(player->GetSession()).PSendSysMessage("Progression Level Required = |cff00ffff{}|r", PROGRESSION_TBC_TIER_2);
                 return false;
@@ -437,33 +460,53 @@ public:
         InstanceTemplate const* instanceTemplate = sObjectMgr->GetInstanceTemplate(mapid);
         if (instanceTemplate)
         {
-            if (instanceTemplate->Parent == MAP_OUTLAND && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_PRE_TBC))
+            if (progressionRules && instanceTemplate->Parent == MAP_OUTLAND && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_PRE_TBC))
                 return false;
 
-            if (instanceTemplate->Parent == MAP_NORTHREND && mapid != MAP_NAXXRAMAS && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_TBC_TIER_5))
+            if (progressionRules && instanceTemplate->Parent == MAP_NORTHREND && mapid != MAP_NAXXRAMAS && !sIndividualProgression->hasPassedProgression(player, PROGRESSION_TBC_TIER_5))
                 return false;
 
             if (instanceTemplate->Parent == MAP_NORTHREND && mapid == MAP_NAXXRAMAS)
             {
-                if (sIndividualProgression->hasPassedProgression(player, PROGRESSION_WOTLK_TIER_5))
-                    return true;
-                else // progression 0-17
+                // 10 Heroic is the 40-player version. It needs the attunement at every level and progression, but only when entering the map.
+                bool const vanillaVersion = player->GetMapId() != mapid && player->GetDifficulty(true) == RAID_DIFFICULTY_10MAN_HEROIC;
+
+                if (player->GetLevel() <= 70)
                 {
-                    if (player->GetLevel() <= 70)
+                    if (!progressionRules || sIndividualProgression->hasPassedProgression(player, PROGRESSION_WOTLK_TIER_5))
+                    {
+                        if (vanillaVersion && !sIndividualProgression->isAttuned(player))
+                        {
+                            ChatHandler(player->GetSession()).PSendSysMessage("You are not attuned to Naxxramas.");
+                            return false;
+                        }
+                    }
+                    else // progression 0-17
                     {
                         if (!sIndividualProgression->isAttuned(player))
                             return false;
 
-                        if (!sIndividualProgression->hasPassedProgression(player, PROGRESSION_WOTLK_TIER_5)) // progression 18
-                        {
-                            if (sIndividualProgression->hasPassedProgression(player, PROGRESSION_TBC_TIER_5)) // Death Knights
-                                return false;
-                        }
-                    }
-                    else // level 71+
-                    {
-                        if (player->GetLevel() < 80)
+                        if (sIndividualProgression->hasPassedProgression(player, PROGRESSION_TBC_TIER_5)) // Death Knights
                             return false;
+                    }
+                }
+                else // level 71+
+                {
+                    if (player->GetLevel() < 80)
+                        return false;
+
+                    if (vanillaVersion)
+                    {
+                        if (!sIndividualProgression->canEnterVanillaRaidAt80(player))
+                        {
+                            ChatHandler(player->GetSession()).PSendSysMessage("You need progression 18 to enter the vanilla version of Naxxramas.");
+                            return false;
+                        }
+                        if (!sIndividualProgression->isAttuned(player))
+                        {
+                            ChatHandler(player->GetSession()).PSendSysMessage("You are not attuned to Naxxramas.");
+                            return false;
+                        }
                     }
                 }
             }
